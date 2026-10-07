@@ -9,17 +9,28 @@ import json
 
 app = Flask(__name__)
 
-users_data = []
+users_data = {}
+users_transactions = []
 processed_event_ids = []
 processed_events = []
 load_dotenv('/home/ubuntu/Web_App_Revision/Webhooks_Practice/env_vars_webhook.env')
 
 def save_new_user(user_id: int, user_name: str): 
     new_user = {
-        'user_id': user_id,
         'user_name': user_name,
     }
-    users_data.append(new_user)
+    users_data[user_id] = new_user
+
+def delete_user(user_id: int):
+    _ = users_data.pop(user_id)
+
+def process_payment(user_id: int, user_name: str, amount: float=10.00):
+    new_transaction = {
+        'user_id': user_id,
+        'user_name': user_name,
+        'transaction_amount': amount,
+    }
+    users_transactions.append(new_transaction)
 
 def create_signature(json_data:str, timestamp: str):
     pre_digest = f'{timestamp}.{json_data}'
@@ -83,12 +94,23 @@ def webhook():
     except KeyError:
         user_name = ''
 
-    save_new_user(user_id, user_name)
+    #---handle event processing
+    if event == 'user.created':
+        save_new_user(user_id, user_name)
+    elif event == 'user.deleted':
+        delete_user(user_id)
+    elif event == 'payment.completed':
+        amount = user_data['amount']
+        process_payment(user_id, user_name, amount)
+
+    #---log event
     processed_event_ids.append(event_id)
     processed_events.append({
         'event_id': event_id,
         'event': event,
         'data': 'Not Available',
+        'received_at': datetime.now().isoformat(sep=' '),
+        'processed': True,
     })
     return {'message': 'Data received successfully'}, 200
 
