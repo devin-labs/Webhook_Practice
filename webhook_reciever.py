@@ -1,4 +1,4 @@
-from flask import Flask, request, url_for, jsonify
+from flask import Flask, request, url_for, jsonify, redirect
 from dotenv import load_dotenv
 import hashlib
 import hmac
@@ -40,6 +40,10 @@ def create_signature(json_data:str, timestamp: str):
         pre_digest.encode(), 
         hashlib.sha256
     ).hexdigest()
+
+@app.route('/')
+def home():
+    return 'This website does not have a homepage', 404
 
 @app.post('/webhook')
 def webhook():
@@ -150,6 +154,10 @@ return_counter = 1
 @app.get('/webhook/events')
 def get_events():
     return processed_events, 200
+
+@app.get('/worker')
+def get_worker():
+    return {'message': f'Current PID: {os.getpid()}'}, 200
 
 if __name__ == '__main__':
     app.run()

@@ -5,7 +5,9 @@ import os
 import json
 from datetime import datetime
 import hmac
+import random
 
+SERVER_URL = 'http://127.0.0.1:8000'
 
 def create_signature(data: str, timestamp: float):
     secret = os.getenv("WEBHOOK_SECRET")
@@ -21,7 +23,7 @@ def create_signature(data: str, timestamp: float):
 def main():
     load_dotenv("/home/ubuntu/Web_App_Revision/Webhooks_Practice/env_vars_webhook.env")
     body = {
-        "event_id": "123abcde",
+        "event_id": f"event_{random.randint(1, 500)}",
         "event": "user.created",
         "data": {
             "id": 123,
@@ -37,7 +39,7 @@ def main():
     retries = 0
     while True:
         response = requests.post(
-            "http://localhost:5000/webhook", json.dumps(body), headers=headers
+            SERVER_URL + '/webhook', json.dumps(body), headers=headers
         )
         if response.status_code == 500 and retries <3:
             retries += 1
