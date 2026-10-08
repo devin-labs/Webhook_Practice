@@ -1,7 +1,5 @@
 .gitignore
 env/
 __pycache__/
-gunicorn.conf.py
 *.sh
 webhook_sender.py
-wsgi.py
