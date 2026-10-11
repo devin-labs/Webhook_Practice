@@ -21,6 +21,9 @@ load_dotenv('.env')
 
 def validate_signature(received_signature, body_bytes: bytes) -> bool:
     webhook_secret = getenv('WEBHOOK_SECRET').encode('utf-8')
+    if webhook_secret is None:
+        logger.critical('Webhook secret could not be retrieved')
+        return jsonify('Internal server error'), 500
     digest = new(webhook_secret, body_bytes, sha256).hexdigest()
     return compare_digest(received_signature, digest)    
 
@@ -35,7 +38,9 @@ def post_webhook():
 
     #---check for missing fields
     logger.info('Checking for missing fields')
-    body = request.get_json()
+    body = request.get_json(silent=True)
+    if body is None:
+        return jsonify('Invalid JSON'), 400
     try:
         event_id = body['event_id']
         event = body['event']
@@ -50,11 +55,15 @@ def post_webhook():
         return jsonify('Invalid event id'), 400
     if not event.strip():
         return jsonify('Invalid event type'), 400
+    if not isinstance(data, dict):
+        return jsonify('Data field is invalid'), 400
 
     #---verify signature is valid
     logger.info(f'Verifying signature for {event_id}')
     body_bytes = request.get_data()
     received_signature = request.headers.get('X-Signature')
+    if received_signature is None or not received_signature.strip():
+        return jsonify('No signature sent'), 400
     if not validate_signature(received_signature, body_bytes):
         logger.warning(f'Signature invalid for {event_id}')
         return jsonify('Invalid signature'), 400
